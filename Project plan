@@ -1,0 +1,24 @@
+# Expense Tracker
+
+## Sprint 1
+- [x] Project Setup
+- [x] Git Initialization
+- [x] Folder Structure
+- [x] SQLite Database
+- [ ] Add Expense Form
+- [ ] Save Expense to Database
+- [ ] View Expenses
+
+## Sprint 2
+- [ ] Add Income
+- [ ] Dashboard
+- [ ] Charts
+
+## Sprint 3
+- [ ] Reports
+- [ ] Export Data
+- [ ] Budget Tracking
+
+## Sprint 4
+- [ ] UI Improvements
+- [ ] Deployment
