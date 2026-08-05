@@ -100,19 +100,4 @@ if __name__ == "__main__":
     create_database()
 #    print("✅ Database created successfully!")
 
-
-    add_income(
-        50000,
-        "Salary",
-        "2026-08-04"
-    )
-
-    add_expense(
-        250,
-        "Food",
-        "Lunch",
-        "UPI",
-        "2026-08-04"
-    )
-
     print(get_all_expenses())

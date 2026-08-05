@@ -1,5 +1,9 @@
 import streamlit as st
 
+import db
+from db import add_expense
+
+
 st.title("Add Expenses")
 
 with st.form("expense_form"):
@@ -40,4 +44,11 @@ with st.form("expense_form"):
     )
 
 if submitted:
-    st.success("Saved Expense!")
+    if amount < 0 :
+        st.error("Please enter amount greater than 0")
+
+    else:
+        db.add_expense(amount, category, description, payment_mode, str(date))
+
+        st.success("Saved Expense!")
+
