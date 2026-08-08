@@ -79,6 +79,18 @@ def add_expense(amount, category, description, payment_mode, date):
     connection.commit()
     connection.close()
 
+def get_all_income():
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT * FROM income
+        order by date DESC
+            """)
+    data = cursor.fetchall()
+    connection.close()
+    return data
+
 def get_all_expenses():
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
@@ -99,5 +111,5 @@ def get_all_expenses():
 if __name__ == "__main__":
     create_database()
 #    print("✅ Database created successfully!")
-
-    print(get_all_expenses())
+ #   print(get_all_expenses())
+  #  print(get_all_income())
