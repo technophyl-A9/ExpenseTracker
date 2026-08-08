@@ -1,25 +1,9 @@
-# Expense Tracker
+# Python
+__pycache__/
+*.py[cod]
 
-A modern Expense Tracker application built using Python, Streamlit, SQLite, and Plotly.
+# PyCharm
+.idea/
 
-## Features
-
-- Add Income
-- Add Expenses
-- Dashboard
-- Monthly Reports
-- Category-wise Analysis
-- Budget Tracking
-- Export Reports
-
-## Tech Stack
-
-- Python
-- Streamlit
-- SQLite
-- Plotly
-- Pandas
-
-## Project Status
-
-🚧 Under Development
+# SQLite database
+data/*.db
