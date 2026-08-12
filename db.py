@@ -79,6 +79,50 @@ def add_expense(amount, category, description, payment_mode, date):
     connection.commit()
     connection.close()
 
+def update_expense(
+    expense_id,
+    amount,
+    category,
+    description,
+    payment_mode,
+    date
+):
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE expenses
+        SET
+            amount = ?,
+            category = ?,
+            description = ?,
+            payment_mode = ?,
+            date = ?
+        WHERE id = ?
+    """, (
+        amount,
+        category,
+        description,
+        payment_mode,
+        date,
+        expense_id
+    ))
+
+    connection.commit()
+    connection.close()
+
+def delete_expense(expense_id):
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        DELETE FROM expenses
+        WHERE id = ?
+    """, (expense_id,))
+
+    connection.commit()
+    connection.close()
+
 def get_all_income():
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
