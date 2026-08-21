@@ -17,6 +17,25 @@ df = pd.DataFrame(
     ]
 )
 
+#filter and search expenses
+categories = [
+    "All",
+    "Food",
+    "Travel",
+    "Entertainment",
+    "Baladoor"
+]
+
+selected_category = st.selectbox(
+    "🔎 Filter by Category",
+    categories
+)
+
+if selected_category != "All":
+    df = df[
+        df["Category"] == selected_category
+    ]
+
 total_expense = df["Amount"].sum()
 
 total_records = len(df)
