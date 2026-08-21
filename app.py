@@ -1,12 +1,19 @@
 import streamlit as st
 
+from db import create_database
+from utils.auth import is_logged_in
 
-st.set_page_config(
-    page_title="Expense Tracker",
-    page_icon="💰",
-    layout="wide"
-)
 
+# ==================================================
+# DATABASE INITIALIZATION
+# ==================================================
+
+create_database()
+
+
+# ==================================================
+# PAGE DEFINITIONS
+# ==================================================
 
 home = st.Page(
     "pages/home.py",
@@ -74,26 +81,61 @@ reports = st.Page(
     icon="📈"
 )
 
-
-pg = st.navigation(
-    {
-        "": [home, dashboard, reports],
-
-        "💸 Expenses": [
-            add_expense,
-            view_expenses,
-            edit_expense,
-            delete_expense
-        ],
-
-        "💵 Income": [
-            add_income,
-            view_income,
-            edit_income,
-            delete_income
-        ]
-    }
+login = st.Page(
+    "pages/login.py",
+    title="Login"
 )
 
+register = st.Page(
+    "pages/register.py",
+    title="Register"
+)
+
+
+# ==================================================
+# NAVIGATION
+# ==================================================
+
+if not is_logged_in():
+
+    pg = st.navigation(
+        {
+            "Account": [
+                login,
+                register
+            ]
+        }
+    )
+
+else:
+
+    pg = st.navigation(
+        {
+            "": [
+                home,
+                dashboard,
+                reports
+            ],
+
+            "Expenses": [
+                add_expense,
+                view_expenses,
+                edit_expense,
+                delete_expense
+            ],
+
+            "Income": [
+                add_income,
+                view_income,
+                edit_income,
+                delete_income
+            ]
+        }
+    )
+
+
+# ==================================================
+# RUN PAGE
+# ==================================================
 
 pg.run()

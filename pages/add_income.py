@@ -1,16 +1,42 @@
-import db
 import streamlit as st
 
-from pages.add_expenses import submitted
+from db import add_income
+from utils.auth import get_current_user_id
+
+
+# ==================================================
+# PAGE TITLE
+# ==================================================
 
 st.title("Add Income")
 
-amount = st.number_input("Amount to add",
-                         min_value=1.0,
-                         step=1.0)
 
-source = st.selectbox(
-    "Income Source",
+# ==================================================
+# 1. GET CURRENT USER
+# ==================================================
+
+user_id = get_current_user_id()
+
+if user_id is None:
+
+    st.error("Please login to add income.")
+    st.stop()
+
+
+# ==================================================
+# 2. INCOME FORM
+# ==================================================
+
+with st.form("income_form"):
+
+    amount = st.number_input(
+        "Amount",
+        min_value=1.0,
+        step=1.0
+    )
+
+    source = st.selectbox(
+        "Income Source",
         [
             "Salary",
             "Freelancing",
@@ -21,18 +47,36 @@ source = st.selectbox(
         ]
     )
 
-date = st.date_input("Date")
+    date = st.date_input(
+        "Date"
+    )
 
-submitted = st.button("Save your Income")
+    submitted = st.form_submit_button(
+        "Save Income"
+    )
+
+
+# ==================================================
+# 3. SAVE INCOME
+# ==================================================
+
 if submitted:
-    if amount<=0:
-        st.error("Please enter amount greater than 0")
 
-    else:
-        db.add_income(
-            amount,
-            source,
-            date
+    if amount <= 0:
+
+        st.error(
+            "Please enter an amount greater than 0."
         )
 
-        st.success("Saved your Income!")
+    else:
+
+        add_income(
+            user_id,
+            amount,
+            source,
+            str(date)
+        )
+
+        st.success(
+            "Income saved successfully!"
+        )

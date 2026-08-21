@@ -3,6 +3,7 @@ import streamlit as st
 import plotly.express as px
 
 from db import get_all_income, get_all_expenses
+from utils.auth import get_current_user_id
 
 
 # ==================================================
@@ -15,19 +16,31 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📊 Your Dashboard")
+st.title("Your Dashboard")
 
 
 # ==================================================
-# 1. GET DATA FROM DATABASE
+# 1. GET CURRENT USER
 # ==================================================
 
-expenses = get_all_expenses()
-income = get_all_income()
+user_id = get_current_user_id()
+
+if user_id is None:
+
+    st.error("Please login to view your dashboard.")
+    st.stop()
 
 
 # ==================================================
-# 2. CREATE DATAFRAMES
+# 2. GET USER DATA
+# ==================================================
+
+expenses = get_all_expenses(user_id)
+income = get_all_income(user_id)
+
+
+# ==================================================
+# 3. CREATE DATAFRAMES
 # ==================================================
 
 expense_df = pd.DataFrame(
@@ -54,7 +67,7 @@ income_df = pd.DataFrame(
 
 
 # ==================================================
-# 3. CONVERT DATES
+# 4. CONVERT DATES
 # ==================================================
 
 if not expense_df.empty:
@@ -71,13 +84,6 @@ if not expense_df.empty:
     expense_df["Month"] = (
         expense_df["Date"]
         .dt.strftime("%Y-%m")
-    )
-
-else:
-
-    # Make sure the column exists
-    expense_df["Month"] = pd.Series(
-        dtype="object"
     )
 
 
@@ -97,16 +103,9 @@ if not income_df.empty:
         .dt.strftime("%Y-%m")
     )
 
-else:
-
-    # Make sure the column exists
-    income_df["Month"] = pd.Series(
-        dtype="object"
-    )
-
 
 # ==================================================
-# 4. CHECK WHETHER DATA EXISTS
+# 5. CHECK DATA
 # ==================================================
 
 if expense_df.empty and income_df.empty:
@@ -119,16 +118,27 @@ if expense_df.empty and income_df.empty:
 
 
 # ==================================================
-# 5. GET AVAILABLE MONTHS
+# 6. GET AVAILABLE MONTHS
 # ==================================================
 
-expense_months = set(
-    expense_df["Month"].dropna().unique()
-)
+expense_months = set()
 
-income_months = set(
-    income_df["Month"].dropna().unique()
-)
+income_months = set()
+
+
+if not expense_df.empty:
+
+    expense_months = set(
+        expense_df["Month"].dropna().unique()
+    )
+
+
+if not income_df.empty:
+
+    income_months = set(
+        income_df["Month"].dropna().unique()
+    )
+
 
 available_months = sorted(
     expense_months | income_months,
@@ -139,15 +149,14 @@ available_months = sorted(
 if not available_months:
 
     st.info("No valid dates available.")
-
     st.stop()
 
 
 # ==================================================
-# 6. MONTH SELECTOR
+# 7. MONTH SELECTOR
 # ==================================================
 
-st.subheader("📅 Select Month")
+st.subheader("Select Month")
 
 selected_month = st.selectbox(
     "Month",
@@ -157,20 +166,37 @@ selected_month = st.selectbox(
 
 
 # ==================================================
-# 7. FILTER SELECTED MONTH
+# 8. FILTER SELECTED MONTH
 # ==================================================
 
-selected_expenses = expense_df[
-    expense_df["Month"] == selected_month
-].copy()
+if not expense_df.empty:
 
-selected_income = income_df[
-    income_df["Month"] == selected_month
-].copy()
+    selected_expenses = expense_df[
+        expense_df["Month"] == selected_month
+    ].copy()
+
+else:
+
+    selected_expenses = pd.DataFrame(
+        columns=expense_df.columns
+    )
+
+
+if not income_df.empty:
+
+    selected_income = income_df[
+        income_df["Month"] == selected_month
+    ].copy()
+
+else:
+
+    selected_income = pd.DataFrame(
+        columns=income_df.columns
+    )
 
 
 # ==================================================
-# 8. CALCULATE TOTALS
+# 9. CALCULATE TOTALS
 # ==================================================
 
 total_income = selected_income["Amount"].sum()
@@ -181,7 +207,7 @@ balance = total_income - total_expenses
 
 
 # ==================================================
-# 9. SUMMARY CARDS
+# 10. SUMMARY CARDS
 # ==================================================
 
 st.subheader("Monthly Summary")
@@ -192,7 +218,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
 
     st.metric(
-        "💵 Total Income",
+        "Total Income",
         f"₹{total_income:,.2f}"
     )
 
@@ -200,7 +226,7 @@ with col1:
 with col2:
 
     st.metric(
-        "💸 Total Expenses",
+        "Total Expenses",
         f"₹{total_expenses:,.2f}"
     )
 
@@ -208,16 +234,16 @@ with col2:
 with col3:
 
     st.metric(
-        "💰 Balance",
+        "Balance",
         f"₹{balance:,.2f}"
     )
 
 
 # ==================================================
-# 10. EXPENSES BY CATEGORY
+# 11. EXPENSES BY CATEGORY
 # ==================================================
 
-st.subheader("🍕 Expenses by Category")
+st.subheader("Expenses by Category")
 
 
 if not selected_expenses.empty:
@@ -249,10 +275,10 @@ else:
 
 
 # ==================================================
-# 11. MONTHLY EXPENSE TREND
+# 12. MONTHLY EXPENSE TREND
 # ==================================================
 
-st.subheader("📈 Monthly Expense Trend")
+st.subheader("Monthly Expense Trend")
 
 
 if not expense_df.empty:
@@ -291,10 +317,10 @@ else:
 
 
 # ==================================================
-# 12. RECENT TRANSACTIONS
+# 13. RECENT TRANSACTIONS
 # ==================================================
 
-st.subheader("🧾 Recent Transactions")
+st.subheader("Recent Transactions")
 
 
 if not selected_expenses.empty:

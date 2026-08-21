@@ -3,17 +3,39 @@ import pandas as pd
 import plotly.express as px
 
 from db import get_all_expenses, get_all_income
+from utils.auth import get_current_user_id
 
 
-st.title("📊 Expense Reports")
+# ==================================================
+# PAGE TITLE
+# ==================================================
+
+st.title("Expense Reports")
 
 
-# GET DATA FROM DATABASE
+# ==================================================
+# 1. GET CURRENT USER
+# ==================================================
 
-expenses = get_all_expenses()
-income = get_all_income()
+user_id = get_current_user_id()
 
-# CREATE DATAFRAMES
+if user_id is None:
+
+    st.error("Please login to view reports.")
+    st.stop()
+
+
+# ==================================================
+# 2. GET USER DATA
+# ==================================================
+
+expenses = get_all_expenses(user_id)
+income = get_all_income(user_id)
+
+
+# ==================================================
+# 3. CREATE DATAFRAMES
+# ==================================================
 
 expense_df = pd.DataFrame(
     expenses,
@@ -38,43 +60,70 @@ income_df = pd.DataFrame(
 )
 
 
-# --------------------------------------------------
-# HANDLE EMPTY DATA
-# --------------------------------------------------
+# ==================================================
+# 4. HANDLE EMPTY DATA
+# ==================================================
 
 if expense_df.empty and income_df.empty:
 
-    st.info("No income or expense data available yet.")
+    st.info(
+        "No income or expense data available yet."
+    )
+
     st.stop()
 
 
-# --------------------------------------------------
-# CONVERT DATES
-# --------------------------------------------------
+# ==================================================
+# 5. CONVERT DATES
+# ==================================================
 
 if not expense_df.empty:
-    expense_df["Date"] = pd.to_datetime(expense_df["Date"])
 
-if not income_df.empty:
-    income_df["Date"] = pd.to_datetime(income_df["Date"])
-
-
-# --------------------------------------------------
-# GET AVAILABLE MONTHS
-# --------------------------------------------------
-
-expense_months = set()
-
-income_months = set()
-
-if not expense_df.empty:
-    expense_months = set(
-        expense_df["Date"].dt.strftime("%Y-%m").unique()
+    expense_df["Date"] = pd.to_datetime(
+        expense_df["Date"],
+        errors="coerce"
     )
 
+    expense_df = expense_df.dropna(
+        subset=["Date"]
+    ).copy()
+
+
 if not income_df.empty:
+
+    income_df["Date"] = pd.to_datetime(
+        income_df["Date"],
+        errors="coerce"
+    )
+
+    income_df = income_df.dropna(
+        subset=["Date"]
+    ).copy()
+
+
+# ==================================================
+# 6. GET AVAILABLE MONTHS
+# ==================================================
+
+expense_months = set()
+income_months = set()
+
+
+if not expense_df.empty:
+
+    expense_months = set(
+        expense_df["Date"]
+        .dt.strftime("%Y-%m")
+        .unique()
+    )
+
+
+if not income_df.empty:
+
     income_months = set(
-        income_df["Date"].dt.strftime("%Y-%m").unique()
+        income_df["Date"]
+        .dt.strftime("%Y-%m")
+        .unique()
     )
 
 
@@ -84,25 +133,33 @@ available_months = sorted(
 )
 
 
-# --------------------------------------------------
-# MONTH SELECTOR
-# --------------------------------------------------
+if not available_months:
+
+    st.info("No valid dates available.")
+    st.stop()
+
+
+# ==================================================
+# 7. MONTH SELECTOR
+# ==================================================
 
 selected_month = st.selectbox(
-    "📅 Select Month",
+    "Select Month",
     available_months
 )
 
 
-# --------------------------------------------------
-# FILTER SELECTED MONTH
-# --------------------------------------------------
+# ==================================================
+# 8. FILTER SELECTED MONTH
+# ==================================================
 
 if not expense_df.empty:
 
     selected_expenses = expense_df[
-        expense_df["Date"].dt.strftime("%Y-%m") == selected_month
-    ]
+        expense_df["Date"]
+        .dt.strftime("%Y-%m")
+        == selected_month
+    ].copy()
 
 else:
 
@@ -114,8 +171,10 @@ else:
 if not income_df.empty:
 
     selected_income = income_df[
-        income_df["Date"].dt.strftime("%Y-%m") == selected_month
-    ]
+        income_df["Date"]
+        .dt.strftime("%Y-%m")
+        == selected_month
+    ].copy()
 
 else:
 
@@ -124,9 +183,9 @@ else:
     )
 
 
-# --------------------------------------------------
-# CALCULATE TOTALS
-# --------------------------------------------------
+# ==================================================
+# 9. CALCULATE TOTALS
+# ==================================================
 
 total_income = selected_income["Amount"].sum()
 
@@ -135,39 +194,42 @@ total_expenses = selected_expenses["Amount"].sum()
 savings = total_income - total_expenses
 
 
-# --------------------------------------------------
-# SUMMARY CARDS
-# --------------------------------------------------
+# ==================================================
+# 10. SUMMARY
+# ==================================================
 
 st.subheader("Monthly Summary")
 
 col1, col2, col3 = st.columns(3)
 
+
 with col1:
 
     st.metric(
-        "💵 Total Income",
+        "Total Income",
         f"₹{total_income:,.2f}"
     )
+
 
 with col2:
 
     st.metric(
-        "💸 Total Expenses",
+        "Total Expenses",
         f"₹{total_expenses:,.2f}"
     )
+
 
 with col3:
 
     st.metric(
-        "💰 Savings",
+        "Savings",
         f"₹{savings:,.2f}"
     )
 
 
-# --------------------------------------------------
-# SAVINGS PERCENTAGE
-# --------------------------------------------------
+# ==================================================
+# 11. SAVINGS PERCENTAGE
+# ==================================================
 
 if total_income > 0:
 
@@ -182,12 +244,14 @@ if total_income > 0:
 
 else:
 
-    st.info("No income recorded for this month.")
+    st.info(
+        "No income recorded for this month."
+    )
 
 
-# --------------------------------------------------
-# CATEGORY BREAKDOWN
-# --------------------------------------------------
+# ==================================================
+# 12. CATEGORY BREAKDOWN
+# ==================================================
 
 st.subheader("Expense by Category")
 
@@ -211,9 +275,10 @@ if not selected_expenses.empty:
         hide_index=True
     )
 
-    # --------------------------------------------------
+
+    # ==================================================
     # CATEGORY CHART
-    # --------------------------------------------------
+    # ==================================================
 
     fig = px.pie(
         category_expenses,
@@ -234,27 +299,29 @@ else:
     )
 
 
-# --------------------------------------------------
-# HIGHEST SPENDING CATEGORY
-# --------------------------------------------------
+# ==================================================
+# 13. HIGHEST SPENDING CATEGORY
+# ==================================================
 
 if not selected_expenses.empty:
 
-    highest_category = (
+    category_totals = (
         selected_expenses
         .groupby("Category")["Amount"]
         .sum()
-        .idxmax()
+    )
+
+    highest_category = (
+        category_totals.idxmax()
     )
 
     highest_category_amount = (
-        selected_expenses
-        .groupby("Category")["Amount"]
-        .sum()
-        .max()
+        category_totals.max()
     )
 
-    st.subheader("🔝 Highest Spending Category")
+    st.subheader(
+        "Highest Spending Category"
+    )
 
     st.write(
         f"**{highest_category}** — "
@@ -262,17 +329,22 @@ if not selected_expenses.empty:
     )
 
 
-# --------------------------------------------------
-# TRANSACTION SUMMARY
-# --------------------------------------------------
+# ==================================================
+# 14. TRANSACTION SUMMARY
+# ==================================================
 
-st.subheader("🧾 Transaction Summary")
+st.subheader("Transaction Summary")
 
-expense_count = len(selected_expenses)
+expense_count = len(
+    selected_expenses
+)
 
-income_count = len(selected_income)
+income_count = len(
+    selected_income
+)
 
 col1, col2 = st.columns(2)
+
 
 with col1:
 
@@ -280,6 +352,7 @@ with col1:
         "Expense Transactions",
         expense_count
     )
+
 
 with col2:
 

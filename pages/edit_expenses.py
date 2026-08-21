@@ -3,16 +3,33 @@ from datetime import datetime
 
 from db import get_all_expenses, update_expense
 from utils.categories import EXPENSE_CATEGORIES
-
-
-st.title("✏️ Edit Expense")
+from utils.auth import get_current_user_id
 
 
 # ==================================================
-# 1. GET EXPENSES
+# PAGE TITLE
 # ==================================================
 
-expenses = get_all_expenses()
+st.title("Edit Expense")
+
+
+# ==================================================
+# 1. GET CURRENT USER
+# ==================================================
+
+user_id = get_current_user_id()
+
+if user_id is None:
+
+    st.error("Please login to edit expenses.")
+    st.stop()
+
+
+# ==================================================
+# 2. GET USER'S EXPENSES
+# ==================================================
+
+expenses = get_all_expenses(user_id)
 
 
 if not expenses:
@@ -22,7 +39,7 @@ if not expenses:
 
 
 # ==================================================
-# 2. GET AVAILABLE MONTHS
+# 3. GET AVAILABLE MONTHS
 # ==================================================
 
 months = sorted(
@@ -35,17 +52,17 @@ months = sorted(
 
 
 # ==================================================
-# 3. SELECT MONTH
+# 4. SELECT MONTH
 # ==================================================
 
 selected_month = st.selectbox(
-    "📅 Select Month",
+    "Select Month",
     months
 )
 
 
 # ==================================================
-# 4. FILTER EXPENSES BY MONTH
+# 5. FILTER EXPENSES BY MONTH
 # ==================================================
 
 month_expenses = [
@@ -56,7 +73,7 @@ month_expenses = [
 
 
 # ==================================================
-# 5. SELECT EXPENSE
+# 6. SELECT EXPENSE
 # ==================================================
 
 expense_options = {
@@ -72,11 +89,13 @@ selected_expense = st.selectbox(
 )
 
 
-selected_id = expense_options[selected_expense]
+selected_id = expense_options[
+    selected_expense
+]
 
 
 # ==================================================
-# 6. GET SELECTED EXPENSE
+# 7. GET SELECTED EXPENSE
 # ==================================================
 
 selected_data = next(
@@ -95,7 +114,7 @@ date = selected_data[5]
 
 
 # ==================================================
-# 7. EDIT FORM
+# 8. EDIT FORM
 # ==================================================
 
 with st.form("edit_expense_form"):
@@ -148,17 +167,18 @@ with st.form("edit_expense_form"):
     )
 
     submitted = st.form_submit_button(
-        "✏️ Update Expense"
+        "Update Expense"
     )
 
 
 # ==================================================
-# 8. UPDATE DATABASE
+# 9. UPDATE DATABASE
 # ==================================================
 
 if submitted:
 
     update_expense(
+        user_id,
         expense_id,
         new_amount,
         new_category,
@@ -168,5 +188,7 @@ if submitted:
     )
 
     st.success(
-        "Expense updated successfully! 🎉"
+        "Expense updated successfully!"
     )
+
+    st.rerun()

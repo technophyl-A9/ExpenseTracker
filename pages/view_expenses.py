@@ -3,16 +3,33 @@ import pandas as pd
 
 from db import get_all_expenses
 from utils.categories import EXPENSE_CATEGORIES
-
-
-st.title("🧾 View Expenses")
+from utils.auth import get_current_user_id
 
 
 # ==================================================
-# 1. GET EXPENSES
+# PAGE TITLE
 # ==================================================
 
-expenses = get_all_expenses()
+st.title("View Expenses")
+
+
+# ==================================================
+# 1. GET CURRENT USER
+# ==================================================
+
+user_id = get_current_user_id()
+
+if user_id is None:
+
+    st.error("Please login to view your expenses.")
+    st.stop()
+
+
+# ==================================================
+# 2. GET USER EXPENSES
+# ==================================================
+
+expenses = get_all_expenses(user_id)
 
 
 if not expenses:
@@ -22,7 +39,7 @@ if not expenses:
 
 
 # ==================================================
-# 2. CREATE DATAFRAME
+# 3. CREATE DATAFRAME
 # ==================================================
 
 expense_df = pd.DataFrame(
@@ -39,7 +56,7 @@ expense_df = pd.DataFrame(
 
 
 # ==================================================
-# 3. CREATE MONTH COLUMN
+# 4. CREATE MONTH COLUMN
 # ==================================================
 
 expense_df["Month"] = (
@@ -50,7 +67,7 @@ expense_df["Month"] = (
 
 
 # ==================================================
-# 4. MONTH FILTER
+# 5. MONTH FILTER
 # ==================================================
 
 months = sorted(
@@ -61,13 +78,13 @@ months = sorted(
 month_options = ["All"] + months
 
 selected_month = st.selectbox(
-    "📅 Select Month",
+    "Select Month",
     month_options
 )
 
 
 # ==================================================
-# 5. CATEGORY FILTER
+# 6. CATEGORY FILTER
 # ==================================================
 
 category_options = [
@@ -75,29 +92,28 @@ category_options = [
 ] + EXPENSE_CATEGORIES
 
 selected_category = st.selectbox(
-    "🔎 Select Category",
+    "Select Category",
     category_options
 )
 
 
 # ==================================================
-# 6. APPLY MONTH FILTER
+# 7. APPLY FILTERS
 # ==================================================
 
 filtered_expenses = expense_df.copy()
 
 
+# Month filter
 if selected_month != "All":
 
     filtered_expenses = filtered_expenses[
-        filtered_expenses["Month"] == selected_month
+        filtered_expenses["Month"]
+        == selected_month
     ]
 
 
-# ==================================================
-# 7. APPLY CATEGORY FILTER
-# ==================================================
-
+# Category filter
 if selected_category != "All":
 
     filtered_expenses = filtered_expenses[
@@ -110,7 +126,7 @@ if selected_category != "All":
 # 8. DISPLAY RESULTS
 # ==================================================
 
-st.subheader("🧾 Expense Records")
+st.subheader("Expense Records")
 
 
 if filtered_expenses.empty:
@@ -131,6 +147,7 @@ else:
         ]
     ].copy()
 
+    # Format amount
     display_df["Amount"] = (
         display_df["Amount"]
         .apply(
@@ -146,7 +163,7 @@ else:
 
 
 # ==================================================
-# 9. TOTAL
+# 9. TOTAL EXPENSES
 # ==================================================
 
 if not filtered_expenses.empty:
@@ -154,6 +171,6 @@ if not filtered_expenses.empty:
     total = filtered_expenses["Amount"].sum()
 
     st.metric(
-        "💰 Total Expenses",
+        "Total Expenses",
         f"₹{total:,.2f}"
     )
