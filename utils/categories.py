@@ -1,0 +1,16 @@
+EXPENSE_CATEGORIES = [
+    "Food",
+    "Travel",
+    "Entertainment",
+    "Baladoor",
+    "Shopping",
+    "Credit card Bill",
+    "Rent",
+    "Health",
+    "Learning",
+    "Subscriptions",
+    "Groceries",
+    "Personal Care",
+    "Transportation",
+    "Others",
+]

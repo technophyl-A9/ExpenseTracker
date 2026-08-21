@@ -139,7 +139,7 @@ savings = total_income - total_expenses
 # SUMMARY CARDS
 # --------------------------------------------------
 
-st.subheader("📌 Monthly Summary")
+st.subheader("Monthly Summary")
 
 col1, col2, col3 = st.columns(3)
 
@@ -176,7 +176,7 @@ if total_income > 0:
     ) * 100
 
     st.metric(
-        "📈 Savings Percentage",
+        "Savings Percentage",
         f"{savings_percentage:.2f}%"
     )
 
@@ -189,7 +189,7 @@ else:
 # CATEGORY BREAKDOWN
 # --------------------------------------------------
 
-st.subheader("📊 Expense by Category")
+st.subheader("Expense by Category")
 
 
 if not selected_expenses.empty:

@@ -2,137 +2,269 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-
 from db import get_all_income, get_all_expenses
 
-st.title("Your Dashboard")
+
+# ==================================================
+# PAGE CONFIGURATION
+# ==================================================
+
+st.set_page_config(
+    page_title="Expense Tracker Dashboard",
+    page_icon="📊",
+    layout="wide"
+)
+
+st.title("📊 Your Dashboard")
+
+
+# ==================================================
+# 1. GET DATA FROM DATABASE
+# ==================================================
 
 expenses = get_all_expenses()
 income = get_all_income()
 
-income_df = pd.DataFrame(
-        income,
-        columns=["ID","Amount", "source", "Date"]
-)
 
+# ==================================================
+# 2. CREATE DATAFRAMES
+# ==================================================
 
 expense_df = pd.DataFrame(
-        expenses,
-        columns=[
-            "ID",
-            "Amount",
-            "Category",
-            "Description",
-            "Payment Mode",
-            "Date"
-        ]
+    expenses,
+    columns=[
+        "ID",
+        "Amount",
+        "Category",
+        "Description",
+        "Payment Mode",
+        "Date"
+    ]
 )
 
-expense_df["Date"] = pd.to_datetime(expense_df["Date"])
+income_df = pd.DataFrame(
+    income,
+    columns=[
+        "ID",
+        "Amount",
+        "Source",
+        "Date"
+    ]
+)
 
-# Convert Date columns to datetime
-expense_df["Date"] = pd.to_datetime(expense_df["Date"])
-income_df["Date"] = pd.to_datetime(income_df["Date"])
+
+# ==================================================
+# 3. CONVERT DATES
+# ==================================================
+
+if not expense_df.empty:
+
+    expense_df["Date"] = pd.to_datetime(
+        expense_df["Date"],
+        errors="coerce"
+    )
+
+    expense_df = expense_df.dropna(
+        subset=["Date"]
+    ).copy()
+
+    expense_df["Month"] = (
+        expense_df["Date"]
+        .dt.strftime("%Y-%m")
+    )
+
+else:
+
+    # Make sure the column exists
+    expense_df["Month"] = pd.Series(
+        dtype="object"
+    )
 
 
-# Now create the available months
-expense_months = expense_df["Date"].dt.strftime("%Y-%m").unique()
-income_months = income_df["Date"].dt.strftime("%Y-%m").unique()
+if not income_df.empty:
+
+    income_df["Date"] = pd.to_datetime(
+        income_df["Date"],
+        errors="coerce"
+    )
+
+    income_df = income_df.dropna(
+        subset=["Date"]
+    ).copy()
+
+    income_df["Month"] = (
+        income_df["Date"]
+        .dt.strftime("%Y-%m")
+    )
+
+else:
+
+    # Make sure the column exists
+    income_df["Month"] = pd.Series(
+        dtype="object"
+    )
+
+
+# ==================================================
+# 4. CHECK WHETHER DATA EXISTS
+# ==================================================
+
+if expense_df.empty and income_df.empty:
+
+    st.info(
+        "No income or expense data available yet."
+    )
+
+    st.stop()
+
+
+# ==================================================
+# 5. GET AVAILABLE MONTHS
+# ==================================================
+
+expense_months = set(
+    expense_df["Month"].dropna().unique()
+)
+
+income_months = set(
+    income_df["Month"].dropna().unique()
+)
 
 available_months = sorted(
-    set(expense_months) | set(income_months),
+    expense_months | income_months,
     reverse=True
 )
 
-# Month selector
-if available_months:
 
-    selected_month = st.selectbox(
-        "📅 Select Month",
-        available_months
-    )
+if not available_months:
 
-else:
-    selected_month = None
-    st.info("No income or expense data available.")
+    st.info("No valid dates available.")
 
-if selected_month:
+    st.stop()
 
-    selected_expenses = expense_df[
-        expense_df["Date"].dt.strftime("%Y-%m") == selected_month
-    ]
 
-    selected_income = income_df[
-        income_df["Date"].dt.strftime("%Y-%m") == selected_month
-    ]
+# ==================================================
+# 6. MONTH SELECTOR
+# ==================================================
 
-#group all expenses by month
-monthly_expenses = (
-    expense_df
-    .groupby(expense_df["Date"].dt.to_period("M"))["Amount"]
-    .sum()
-    .reset_index()
+st.subheader("📅 Select Month")
+
+selected_month = st.selectbox(
+    "Month",
+    available_months,
+    label_visibility="collapsed"
 )
 
 
+# ==================================================
+# 7. FILTER SELECTED MONTH
+# ==================================================
 
-#group all expenses by category  and calculate total amount
-category_expenses = (
-    selected_expenses
-    .groupby("Category")["Amount"]
-    .sum()
-    .reset_index()
-)
+selected_expenses = expense_df[
+    expense_df["Month"] == selected_month
+].copy()
 
-total_expense = selected_expenses["Amount"].sum()
+selected_income = income_df[
+    income_df["Month"] == selected_month
+].copy()
+
+
+# ==================================================
+# 8. CALCULATE TOTALS
+# ==================================================
 
 total_income = selected_income["Amount"].sum()
 
-balance = total_income - total_expense
+total_expenses = selected_expenses["Amount"].sum()
+
+balance = total_income - total_expenses
 
 
-c1, c2, c3 = st.columns(3)
+# ==================================================
+# 9. SUMMARY CARDS
+# ==================================================
 
-with c1:
-    st.metric("Total Income", total_income)
+st.subheader("Monthly Summary")
 
-with c2:
-    st.metric("Total Expenses", total_expense)
-
-with c3:
-    st.metric("Balance", balance)
+col1, col2, col3 = st.columns(3)
 
 
-#Expenses chart
-st.subheader("Your Expenses!")
+with col1:
 
-if not category_expenses.empty:
-
-    fiq = px.pie(category_expenses,
-                 names = "Category",
-                 values = "Amount",
-                 hole = 0.3
+    st.metric(
+        "💵 Total Income",
+        f"₹{total_income:,.2f}"
     )
 
-    st.plotly_chart(fiq, use_container_width=True)
+
+with col2:
+
+    st.metric(
+        "💸 Total Expenses",
+        f"₹{total_expenses:,.2f}"
+    )
+
+
+with col3:
+
+    st.metric(
+        "💰 Balance",
+        f"₹{balance:,.2f}"
+    )
+
+
+# ==================================================
+# 10. EXPENSES BY CATEGORY
+# ==================================================
+
+st.subheader("🍕 Expenses by Category")
+
+
+if not selected_expenses.empty:
+
+    category_expenses = (
+        selected_expenses
+        .groupby("Category")["Amount"]
+        .sum()
+        .reset_index()
+    )
+
+    fig_category = px.pie(
+        category_expenses,
+        names="Category",
+        values="Amount",
+        hole=0.3
+    )
+
+    st.plotly_chart(
+        fig_category,
+        use_container_width=True
+    )
 
 else:
-    st.info("No expenses found!")
 
-#monthly expenses cgart
+    st.info(
+        "No expenses found for the selected month."
+    )
+
+
+# ==================================================
+# 11. MONTHLY EXPENSE TREND
+# ==================================================
+
 st.subheader("📈 Monthly Expense Trend")
+
 
 if not expense_df.empty:
 
     monthly_expenses = (
         expense_df
-        .assign(Month=expense_df["Date"].dt.strftime("%Y-%m"))
         .groupby("Month")["Amount"]
         .sum()
         .reset_index()
     )
 
-    fig = px.bar(
+    fig_monthly = px.bar(
         monthly_expenses,
         x="Month",
         y="Amount",
@@ -142,25 +274,39 @@ if not expense_df.empty:
         }
     )
 
-    fig.update_xaxes(type="category")
+    fig_monthly.update_xaxes(
+        type="category"
+    )
 
     st.plotly_chart(
-        fig,
+        fig_monthly,
         use_container_width=True
     )
 
 else:
-    st.info("No expense data available yet.")
+
+    st.info(
+        "No expense data available yet."
+    )
 
 
-st.subheader(' Recent Transactions')
+# ==================================================
+# 12. RECENT TRANSACTIONS
+# ==================================================
+
+st.subheader("🧾 Recent Transactions")
+
 
 if not selected_expenses.empty:
 
-    recent_expenses = selected_expenses.sort_values(
-        "Date",
-        ascending=False
-    ).copy()
+    recent_expenses = (
+        selected_expenses
+        .sort_values(
+            "Date",
+            ascending=False
+        )
+        .copy()
+    )
 
     recent_expenses["Date"] = (
         recent_expenses["Date"]
@@ -169,7 +315,9 @@ if not selected_expenses.empty:
 
     recent_expenses["Amount"] = (
         recent_expenses["Amount"]
-        .apply(lambda x: f"₹{x:,.2f}")
+        .apply(
+            lambda x: f"₹{x:,.2f}"
+        )
     )
 
     recent_expenses = recent_expenses[
@@ -189,4 +337,7 @@ if not selected_expenses.empty:
     )
 
 else:
-    st.info("No expenses for the selected month.")
+
+    st.info(
+        "No expenses for the selected month."
+    )

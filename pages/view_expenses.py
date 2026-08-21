@@ -1,11 +1,31 @@
 import streamlit as st
 import pandas as pd
-from db import get_all_expenses
 
-st.title("My Expenses !")
+from db import get_all_expenses
+from utils.categories import EXPENSE_CATEGORIES
+
+
+st.title("🧾 View Expenses")
+
+
+# ==================================================
+# 1. GET EXPENSES
+# ==================================================
 
 expenses = get_all_expenses()
-df = pd.DataFrame(
+
+
+if not expenses:
+
+    st.info("No expenses available.")
+    st.stop()
+
+
+# ==================================================
+# 2. CREATE DATAFRAME
+# ==================================================
+
+expense_df = pd.DataFrame(
     expenses,
     columns=[
         "ID",
@@ -17,67 +37,123 @@ df = pd.DataFrame(
     ]
 )
 
-#filter and search expenses
-categories = [
-    "All",
-    "Food",
-    "Travel",
-    "Entertainment",
-    "Baladoor"
-]
+
+# ==================================================
+# 3. CREATE MONTH COLUMN
+# ==================================================
+
+expense_df["Month"] = (
+    expense_df["Date"]
+    .astype(str)
+    .str.slice(0, 7)
+)
+
+
+# ==================================================
+# 4. MONTH FILTER
+# ==================================================
+
+months = sorted(
+    expense_df["Month"].unique(),
+    reverse=True
+)
+
+month_options = ["All"] + months
+
+selected_month = st.selectbox(
+    "📅 Select Month",
+    month_options
+)
+
+
+# ==================================================
+# 5. CATEGORY FILTER
+# ==================================================
+
+category_options = [
+    "All"
+] + EXPENSE_CATEGORIES
 
 selected_category = st.selectbox(
-    "🔎 Filter by Category",
-    categories
+    "🔎 Select Category",
+    category_options
 )
+
+
+# ==================================================
+# 6. APPLY MONTH FILTER
+# ==================================================
+
+filtered_expenses = expense_df.copy()
+
+
+if selected_month != "All":
+
+    filtered_expenses = filtered_expenses[
+        filtered_expenses["Month"] == selected_month
+    ]
+
+
+# ==================================================
+# 7. APPLY CATEGORY FILTER
+# ==================================================
 
 if selected_category != "All":
-    df = df[
-        df["Category"] == selected_category
+
+    filtered_expenses = filtered_expenses[
+        filtered_expenses["Category"]
+        == selected_category
     ]
 
-total_expense = df["Amount"].sum()
 
-total_records = len(df)
+# ==================================================
+# 8. DISPLAY RESULTS
+# ==================================================
 
-average_expense = df["Amount"].mean()
+st.subheader("🧾 Expense Records")
 
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.metric(
-        "💰 Total Expense",
-        f"₹ {total_expense:.2f}"
+
+if filtered_expenses.empty:
+
+    st.info(
+        "No expenses found for the selected filters."
     )
 
-with c2:
-    st.metric(
-        "📋 Total Records",
-        total_records
+else:
+
+    display_df = filtered_expenses[
+        [
+            "Date",
+            "Category",
+            "Description",
+            "Payment Mode",
+            "Amount"
+        ]
+    ].copy()
+
+    display_df["Amount"] = (
+        display_df["Amount"]
+        .apply(
+            lambda x: f"₹{x:,.2f}"
+        )
     )
 
-with c3:
-    st.metric(
-        "📊 Average Expense",
-        f"₹ {average_expense:.2f}"
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True
     )
 
-df = df[
-    [
-        "Date",
-        "Category",
-        "Description",
-        "Payment Mode",
-        "Amount"
-    ]
-]
 
-df["Amount"] = df["Amount"].apply(lambda x: f"₹{x:.2f}")
+# ==================================================
+# 9. TOTAL
+# ==================================================
 
-st.dataframe(
-    df,
-    use_container_width=True,
-    hide_index=True
-)
+if not filtered_expenses.empty:
 
+    total = filtered_expenses["Amount"].sum()
 
-#st.write(expenses)
+    st.metric(
+        "💰 Total Expenses",
+        f"₹{total:,.2f}"
+    )

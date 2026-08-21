@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.categories import EXPENSE_CATEGORIES
 
 import db
 from db import add_expense
@@ -14,13 +15,7 @@ with st.form("expense_form"):
 
     category = st.selectbox(
         "Category",
-        [
-            "Food",
-            "Travel",
-            "Entertainment",
-            "Baladoor",
-
-        ]
+        EXPENSE_CATEGORIES
     )
 
     description = st.text_input(
